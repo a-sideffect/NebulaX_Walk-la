@@ -19,11 +19,10 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   onClose,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-
-  if (!isOpen) return null;
-
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+
+  if (!isOpen) return null;
   
   const handleSearch = async (query: string) => {
   setSearchQuery(query);
@@ -88,14 +87,21 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
           </span>
 
           {searchResults.map((loc) => {
-            const isSelected = loc.id === currentLocation.id;
+            const location: LocationPoint = {
+              id: `${loc.LATITUDE}-${loc.LONGITUDE}`,
+              name: loc.SEARCHVAL,
+              latitude: Number(loc.LATITUDE),
+              longitude: Number(loc.LONGITUDE),
+            };
+
+        const isSelected = location.id === currentLocation.id;
 
             return (
               <button
-                key={loc.id}
+                key={location.id}
                 type="button"
                 onClick={() => {
-                  onSelect(loc);
+                  onSelect(location);
                   onClose();
                 }}
                 className={`w-full text-left p-3.5 rounded-2xl flex items-center justify-between transition-colors cursor-pointer ${
@@ -111,7 +117,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                   <div className="min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="text-[14.5px] font-bold text-white truncate">
-                        {loc.name}
+                        {loc.SEARCHVAL}
                       </span>
                       {loc.stationCode && (
                         <span className="bg-[#0b3832] text-[#00ffa3] text-[10px] font-bold px-1.5 py-0.5 rounded">
