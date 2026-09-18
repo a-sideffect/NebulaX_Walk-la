@@ -21,7 +21,7 @@ export async function getWalkingRoute(
   });
 
   if (!response.ok) {
-    throw new Error("Failed to get OneMap route");
+    throw new Error("Failed to find route");
   }
 
   return await response.json();
