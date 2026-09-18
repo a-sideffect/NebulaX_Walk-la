@@ -1,0 +1,11 @@
+{
+  "name": "walk la",
+  "description": "Singapore sheltered walkway navigator with real-time rain radar advisory, covered linkways, bus feeds, and AR canopy guide.",
+  "requestFramePermissions": [
+    "camera",
+    "geolocation"
+  ],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
