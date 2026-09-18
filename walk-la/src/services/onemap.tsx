@@ -26,3 +26,31 @@ export async function getWalkingRoute(
 
   return await response.json();
 }
+
+export async function searchLocations(
+  searchValue: string,
+  token: string
+) {
+  const params = new URLSearchParams({
+    searchVal: searchValue,
+    returnGeom: "Y",
+    getAddrDetails: "Y",
+    pageNum: "1",
+  });
+
+  const response = await fetch(
+    `${ONEMAP_BASE_URL}/api/common/elastic/search?${params}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: token,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error("Failed to search OneMap");
+  }
+
+  return await response.json();
+}
