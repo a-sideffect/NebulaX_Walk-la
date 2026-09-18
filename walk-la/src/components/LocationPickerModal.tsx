@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { X, Search, MapPin, Check, Shield } from 'lucide-react';
 import { LocationPoint } from '../types';
-import { POPULAR_LOCATIONS } from '../data/mockData';
+import { searchLocations } from "../services/onemap";
 
 interface LocationPickerModalProps {
   isOpen: boolean;
@@ -22,10 +22,30 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 
   if (!isOpen) return null;
 
-  const filtered = POPULAR_LOCATIONS.filter((loc) =>
-    loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (loc.stationCode && loc.stationCode.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  
+  const handleSearch = async (query: string) => {
+  setSearchQuery(query);
+
+  if (!query.trim()) {
+    setSearchResults([]);
+    return;
+  }
+
+  try {
+    setIsSearching(true);
+
+    const results = await searchLocations(query);
+
+    setSearchResults(results.results || []);
+  } catch (error) {
+    console.error("OneMap search failed:", error);
+    setSearchResults([]);
+  } finally {
+    setIsSearching(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
@@ -55,7 +75,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
               type="text"
               placeholder="Search station, covered linkway, or mall..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="bg-transparent border-none text-white text-[13.5px] placeholder-slate-400 focus:outline-none w-full"
             />
           </div>
@@ -67,7 +87,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
             Sheltered Hubs in Singapore
           </span>
 
-          {filtered.map((loc) => {
+          {searchResults.map((loc) => {
             const isSelected = loc.id === currentLocation.id;
 
             return (
