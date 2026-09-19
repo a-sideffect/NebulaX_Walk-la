@@ -3,7 +3,10 @@
   "description": "Singapore sheltered walkway navigator with real-time rain radar advisory, covered linkways, bus feeds, and AR canopy guide.",
   "requestFramePermissions": [
     "camera",
-    "geolocation"
+    "geolocation",
+    "gyroscope",
+    "magnetometer",
+    "accelerometer"
   ],
   "majorCapabilities": [
     "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"

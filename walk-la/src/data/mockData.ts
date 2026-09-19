@@ -75,6 +75,10 @@ export const DEFAULT_ADVISORY: AdvisoryInfo = {
   },
 };
 
+// Placeholder step coordinates below are linearly interpolated between origin
+// and destination -- used only as the offline/fallback route before a real OneMap
+// route has been fetched (see src/services/onemap.ts). Replace with a walked GPS
+// trace if you want this fallback itself to be demo-accurate.
 export const DEFAULT_ROUTES: RouteOption[] = [
   {
     id: 'route-feeder-291',
@@ -91,6 +95,7 @@ export const DEFAULT_ROUTES: RouteOption[] = [
     steps: [
       {
         id: 'step-1',
+        coordinates: { lat: 1.352461, lng: 103.944956 },
         instruction: 'Exit Tampines MRT at Exit B',
         detail: 'Proceed right through the sheltered concourse toward bus boarding berth 4.',
         covered: true,
@@ -101,6 +106,7 @@ export const DEFAULT_ROUTES: RouteOption[] = [
       },
       {
         id: 'step-2',
+        coordinates: { lat: 1.353765, lng: 103.940616 },
         instruction: 'Board Feeder Bus 291 at Berth 4',
         detail: 'Fully covered shelter. Bus arrives in ~3 mins. Ride 1 stop.',
         covered: true,
@@ -111,6 +117,7 @@ export const DEFAULT_ROUTES: RouteOption[] = [
       },
       {
         id: 'step-3',
+        coordinates: { lat: 1.3538, lng: 103.9405 },
         instruction: 'Alight at Our Tampines Hub Concourse',
         detail: 'Step directly into Gate 3 covered drop-off arcade without opening umbrella.',
         covered: true,
@@ -136,6 +143,7 @@ export const DEFAULT_ROUTES: RouteOption[] = [
     steps: [
       {
         id: 'walk-1',
+        coordinates: { lat: 1.352639, lng: 103.944397 },
         instruction: 'Take Exit B towards Tampines St 11 linkway',
         detail: 'Enter the continuous high-canopy HDB sheltered linkway.',
         covered: true,
@@ -146,6 +154,7 @@ export const DEFAULT_ROUTES: RouteOption[] = [
       },
       {
         id: 'walk-2',
+        coordinates: { lat: 1.353408, lng: 103.941818 },
         instruction: 'Follow covered path along Blk 106 to 112 void decks',
         detail: 'Well-lit walkway with rain gutters and breeze barrier.',
         covered: true,
@@ -156,6 +165,7 @@ export const DEFAULT_ROUTES: RouteOption[] = [
       },
       {
         id: 'walk-3',
+        coordinates: { lat: 1.353459, lng: 103.941645 },
         instruction: 'Quick pedestrian crossing across Tampines Ave 4',
         detail: '⚠️ 30m unsheltered signalised zebra crossing. Walk briskly if drizzling!',
         covered: false,
@@ -166,6 +176,7 @@ export const DEFAULT_ROUTES: RouteOption[] = [
       },
       {
         id: 'walk-4',
+        coordinates: { lat: 1.3538, lng: 103.9405 },
         instruction: 'Enter Our Tampines Hub Entrance Gate 3',
         detail: 'Direct access to indoor festive plaza and sports hall.',
         covered: true,

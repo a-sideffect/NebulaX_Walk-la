@@ -1,6 +1,3 @@
-const LTA_BACKEND_URL = "http://localhost:3002";
-
-
 // ========================================
 // GET BUS ARRIVAL TIMINGS
 // ========================================
@@ -18,9 +15,9 @@ export async function getBusArrivals(
     params.append("serviceNo", serviceNo);
   }
 
-  const response = await fetch(
-    `${LTA_BACKEND_URL}/api/lta/bus-arrival?${params}`
-  );
+const response = await fetch(
+  `/api/lta/bus-arrival?${params}`
+);
 
   if (!response.ok) {
     throw new Error("Failed to get bus arrival information");
@@ -34,10 +31,9 @@ export async function getBusArrivals(
 // FOR COCVERED LINKWAYS
 // ========================================
 
-export async function getCoveredLinkways() {
-  const response = await fetch(
-    `${LTA_BACKEND_URL}/api/lta/covered-linkways`
-  );
+const response = await fetch(
+  `/api/lta/covered-linkways`
+);
 
   if (!response.ok) {
     throw new Error("Failed to fetch Covered Linkway data");

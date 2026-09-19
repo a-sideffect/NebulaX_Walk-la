@@ -6,6 +6,7 @@ import {
   Footprints, Bus, AlertTriangle 
 } from 'lucide-react';
 import { RouteOption, LocationPoint } from '../types';
+import { LiveARPanel } from './LiveARPanel';
 
 interface NavigationScreenProps {
   route: RouteOption;
@@ -23,6 +24,7 @@ export const NavigationScreen: React.FC<NavigationScreenProps> = ({
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [isVoiceMuted, setIsVoiceMuted] = useState(false);
   const [rainCountdownSeconds, setRainCountdownSeconds] = useState(580); // ~9.6 mins
+  const [liveViewActive, setLiveViewActive] = useState(false);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -107,6 +109,14 @@ export const NavigationScreen: React.FC<NavigationScreenProps> = ({
             {route.coveredPercentage}% Sheltered
           </div>
         </div>
+
+        {/* Live Guidance View */}
+        <LiveARPanel
+          target={currentStep.coordinates ?? null}
+          targetLabel={currentStep.instruction}
+          active={liveViewActive}
+          onToggle={() => setLiveViewActive((v) => !v)}
+        />
 
         {/* Current Active Step Instruction Card */}
         <div className="bg-[#121d28] rounded-[22px] border-[1.5px] border-[#00ffa3]/80 p-5 shadow-[0_0_25px_rgba(0,255,163,0.12)]">
