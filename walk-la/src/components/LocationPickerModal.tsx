@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { X, Search, MapPin, Check, Shield, Loader2 } from 'lucide-react';
 import { LocationPoint } from '../types';
-import { POPULAR_LOCATIONS } from '../data/mockData';
-import { searchLocations, searchResultToLocationPoint, OneMapSearchResult } from '../services/onemap';
+import { searchLocations } from "../services/onemap";
 
 interface LocationPickerModalProps {
   isOpen: boolean;
@@ -23,49 +22,32 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
   onClose,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [liveResults, setLiveResults] = useState<OneMapSearchResult[]>([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-  const [searchError, setSearchError] = useState<string | null>(null);
-
-  // Debounced live search against OneMap once the query is long enough;
-  // below that, fall back to the bundled quick-pick list.
-  useEffect(() => {
-    if (searchQuery.trim().length < MIN_QUERY_LENGTH) {
-      setLiveResults([]);
-      setSearchError(null);
-      return;
-    }
-
-    let cancelled = false;
-    setSearchLoading(true);
-    setSearchError(null);
-
-    const timer = setTimeout(() => {
-      searchLocations(searchQuery)
-        .then((results) => {
-          if (!cancelled) setLiveResults(results);
-        })
-        .catch(() => {
-          if (!cancelled) setSearchError('Search is unavailable right now -- showing quick picks instead.');
-        })
-        .finally(() => {
-          if (!cancelled) setSearchLoading(false);
-        });
-    }, SEARCH_DEBOUNCE_MS);
-
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
-  }, [searchQuery]);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
 
   if (!isOpen) return null;
+  
+  const handleSearch = async (query: string) => {
+  setSearchQuery(query);
 
-  const isLiveSearch = searchQuery.trim().length >= MIN_QUERY_LENGTH;
-  const quickPicks = POPULAR_LOCATIONS.filter((loc) =>
-    loc.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    (loc.stationCode && loc.stationCode.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  if (!query.trim()) {
+    setSearchResults([]);
+    return;
+  }
+
+  try {
+    setIsSearching(true);
+
+    const results = await searchLocations(query);
+
+    setSearchResults(results.results || []);
+  } catch (error) {
+    console.error("OneMap search failed:", error);
+    setSearchResults([]);
+  } finally {
+    setIsSearching(false);
+  }
+};
 
   return (
     <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 animate-in fade-in duration-150">
@@ -99,7 +81,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
               type="text"
               placeholder="Search any address, building, or postal code..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => handleSearch(e.target.value)}
               className="bg-transparent border-none text-white text-[13.5px] placeholder-slate-400 focus:outline-none w-full"
             />
           </div>
@@ -110,53 +92,48 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
 
         {/* Locations List */}
         <div className="flex-1 overflow-y-auto p-4 space-y-2">
-          {isLiveSearch ? (
-            <>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block px-1 mb-2">
-                {searchLoading ? 'Searching OneMap…' : `Results for "${searchQuery}"`}
-              </span>
-              {!searchLoading && liveResults.length === 0 && !searchError && (
-                <p className="text-[12.5px] text-slate-400 px-1">No matches found.</p>
-              )}
-              {liveResults.map((result) => {
-                const loc = searchResultToLocationPoint(result);
-                const isSelected = loc.id === currentLocation.id;
-                const postal = result.POSTAL && result.POSTAL !== 'NIL' ? result.POSTAL : null;
-                return (
-                  <button
-                    key={loc.id}
-                    type="button"
-                    onClick={() => {
-                      onSelect(loc);
-                      onClose();
-                    }}
-                    className={`w-full text-left p-3.5 rounded-2xl flex items-center justify-between transition-colors cursor-pointer ${
-                      isSelected
-                        ? 'bg-[#0d2822] border-[1.5px] border-[#00ffa3]/80'
-                        : 'bg-[#14202c]/70 hover:bg-[#182736] border border-slate-800/80'
-                    }`}
-                  >
-                    <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-9 h-9 rounded-xl bg-[#1c2c3d] flex items-center justify-center text-slate-300 shrink-0">
-                        <MapPin className="w-4 h-4 text-[#38bdf8]" />
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-2">
-                          <span className="text-[14.5px] font-bold text-white truncate">
-                            {result.SEARCHVAL}
-                          </span>
-                          {postal && (
-                            <span className="bg-[#0b3832] text-[#00ffa3] text-[10px] font-bold px-1.5 py-0.5 rounded">
-                              {postal}
-                            </span>
-                          )}
-                        </div>
-                        {result.ADDRESS && (
-                          <div className="text-[11.5px] text-slate-400 mt-0.5 truncate">
-                            {result.ADDRESS}
-                          </div>
-                        )}
-                      </div>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 block px-1 mb-2">
+            Sheltered Hubs in Singapore
+          </span>
+
+          {searchResults.map((loc) => {
+            const location: LocationPoint = {
+              id: `${loc.LATITUDE}-${loc.LONGITUDE}`,
+              name: loc.SEARCHVAL,
+              latitude: Number(loc.LATITUDE),
+              longitude: Number(loc.LONGITUDE),
+            };
+
+        const isSelected = location.id === currentLocation.id;
+
+            return (
+              <button
+                key={location.id}
+                type="button"
+                onClick={() => {
+                  onSelect(location);
+                  onClose();
+                }}
+                className={`w-full text-left p-3.5 rounded-2xl flex items-center justify-between transition-colors cursor-pointer ${
+                  isSelected
+                    ? 'bg-[#0d2822] border-[1.5px] border-[#00ffa3]/80'
+                    : 'bg-[#14202c]/70 hover:bg-[#182736] border border-slate-800/80'
+                }`}
+              >
+                <div className="flex items-center gap-3 min-w-0">
+                  <div className="w-9 h-9 rounded-xl bg-[#1c2c3d] flex items-center justify-center text-slate-300 shrink-0">
+                    <MapPin className="w-4 h-4 text-[#38bdf8]" />
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[14.5px] font-bold text-white truncate">
+                        {loc.SEARCHVAL}
+                      </span>
+                      {loc.stationCode && (
+                        <span className="bg-[#0b3832] text-[#00ffa3] text-[10px] font-bold px-1.5 py-0.5 rounded">
+                          {loc.stationCode}
+                        </span>
+                      )}
                     </div>
                     {isSelected && <Check className="w-5 h-5 text-[#00ffa3] shrink-0 ml-2" />}
                   </button>
