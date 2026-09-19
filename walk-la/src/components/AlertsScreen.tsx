@@ -1,8 +1,42 @@
-import React from 'react';
-import { CloudRain, Umbrella, Wrench, Clock, MapPin, AlertCircle } from 'lucide-react';
-import { MOCK_ALERTS } from '../data/mockData';
+import React, { useEffect, useState } from 'react';
+import { CloudRain, AlertCircle } from 'lucide-react';
+import { getWeatherForecast } from '../services/weather';
 
 export const AlertsScreen: React.FC = () => {
+  const [weather, setWeather] = useState<any>(null);
+const [weatherLoading, setWeatherLoading] = useState(true);
+const [weatherError, setWeatherError] = useState(false);
+
+useEffect(() => {
+  async function loadWeather() {
+    try {
+      setWeatherLoading(true);
+
+      const data = await getWeatherForecast();
+
+      console.log("Weather API response:", data);
+
+      setWeather(data);
+      setWeatherError(false);
+    } catch (error) {
+      console.error("Failed to load weather:", error);
+      setWeatherError(true);
+    } finally {
+      setWeatherLoading(false);
+    }
+  }
+
+  // Get weather immediately when the screen opens
+  loadWeather();
+
+  // Refresh weather every 5 minutes
+  const interval = setInterval(() => {
+    loadWeather();
+  }, 5 * 60 * 1000);
+
+  // Stop the timer when the screen is closed
+  return () => clearInterval(interval);
+}, []);
   return (
     <div className="space-y-4 select-none pb-24" id="alerts-screen">
       {/* Top Banner */}
@@ -20,19 +54,77 @@ export const AlertsScreen: React.FC = () => {
             </span>
           </div>
           <h2 className="text-[16px] font-bold text-white mt-1 leading-snug">
-            Rain cell reaching Tampines in 10 minutes
-          </h2>
+  {weatherLoading
+    ? "Checking local weather..."
+    : weatherError
+      ? "Unable to retrieve local weather"
+      : "Current weather near you"}
+</h2>
           <p className="text-[12.5px] text-slate-300 mt-1 leading-relaxed">
-            Commuters advised to use the continuous covered linkways or take Feeder Bus 291 to avoid open crossings.
-          </p>
+  Live weather conditions and forecasts based on your location.
+</p>
+        </div>
+      </div>
+    {/* Live Weather Information */}
+<div className="bg-[#121c27] rounded-[22px] border border-slate-800/80 p-4 space-y-4">
+
+  <div className="flex items-center justify-between">
+    <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+      Live Weather
+    </span>
+
+    <span className="text-[11px] text-[#00ffa3]">
+      NEA / Data.gov.sg
+    </span>
+  </div>
+
+  {weatherLoading && (
+    <div className="text-sm text-slate-400">
+      Getting your local weather...
+    </div>
+  )}
+
+  {weatherError && (
+    <div className="flex items-center gap-2 text-sm text-[#fba268]">
+      <AlertCircle className="w-4 h-4" />
+      Unable to retrieve weather information.
+    </div>
+  )}
+
+  {weather && !weatherLoading && !weatherError && (
+    <div className="space-y-3">
+
+      <div className="flex items-center gap-3">
+        <div className="w-11 h-11 rounded-xl bg-[#113830] text-[#00ffa3] flex items-center justify-center">
+          <CloudRain className="w-5 h-5" />
+        </div>
+
+        <div>
+          <div className="text-[15px] font-bold text-white">
+            Local Weather Forecast
+          </div>
+
+          <div className="text-[11px] text-slate-400">
+            Updated from Data.gov.sg
+          </div>
         </div>
       </div>
 
+      {/* We'll populate the actual forecast here */}
+      <div className="bg-[#15212e] rounded-xl p-3">
+        <p className="text-[12px] text-slate-300">
+          Weather data loaded successfully.
+        </p>
+      </div>
+
+    </div>
+  )}
+</div>
       {/* Mini Radar Visualizer */}
       <div className="bg-[#121c27] rounded-[22px] border border-slate-800/80 p-4 space-y-2">
         <div className="flex items-center justify-between text-[11px] font-bold text-slate-400 uppercase">
-          <span>Live Rain Precipitation Radar</span>
-          <span className="text-[#38bdf8]">Tampines Sector</span>
+          <span>Weather Conditions</span>
+<span className="text-[#38bdf8]">Your Location</span>
         </div>
 
         <div className="relative h-32 rounded-xl overflow-hidden bg-slate-950 border border-slate-800 flex items-center justify-center">
@@ -41,10 +133,6 @@ export const AlertsScreen: React.FC = () => {
           <div className="w-24 h-24 rounded-full border border-sky-500/30 animate-ping absolute" />
           <div className="w-16 h-16 rounded-full border border-[#00ffa3]/50 absolute" />
           <div className="w-2.5 h-2.5 rounded-full bg-[#00ffa3] shadow-[0_0_12px_#00ffa3] absolute" />
-          
-          <div className="absolute top-2 left-3 text-[11px] font-bold text-sky-400 bg-slate-900/80 px-2 py-0.5 rounded">
-            Rain Cloud: 2.4 km away
-          </div>
           <div className="absolute bottom-2 right-3 text-[11px] font-bold text-[#00ffa3] bg-slate-900/80 px-2 py-0.5 rounded">
             Exit B Covered Walkway
           </div>
@@ -60,47 +148,6 @@ export const AlertsScreen: React.FC = () => {
           <span className="text-[11px] text-slate-400">
             3 Active
           </span>
-        </div>
-
-        <div className="space-y-2.5">
-          {MOCK_ALERTS.map((alert) => {
-            const isHigh = alert.severity === 'high';
-            const isUmbrella = alert.type === 'umbrella_sharing';
-
-            return (
-              <div
-                key={alert.id}
-                className="bg-[#121c27] rounded-2xl border border-slate-800/80 p-4 space-y-2"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="flex items-center gap-2">
-                    {isHigh ? (
-                      <AlertCircle className="w-4 h-4 text-[#fba268]" />
-                    ) : isUmbrella ? (
-                      <Umbrella className="w-4 h-4 text-[#00ffa3]" />
-                    ) : (
-                      <Wrench className="w-4 h-4 text-[#38bdf8]" />
-                    )}
-                    <span className="font-bold text-white text-[14px]">
-                      {alert.title}
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-slate-400 shrink-0">
-                    {alert.timeAgo}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5 text-[11.5px] text-slate-400">
-                  <MapPin className="w-3.5 h-3.5 text-slate-400" />
-                  <span>{alert.location}</span>
-                </div>
-
-                <p className="text-[12.5px] text-slate-300 leading-relaxed pt-1 border-t border-slate-800/60">
-                  {alert.description}
-                </p>
-              </div>
-            );
-          })}
         </div>
       </div>
     </div>
