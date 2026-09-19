@@ -1,11 +1,11 @@
 import { RouteOption, NavigationStep, LocationPoint } from '../types';
 
 export interface OneMapSearchResult {
-  name: string;
-  address: string;
-  postal: string | null;
-  lat: number;
-  lng: number;
+  SEARCHVAL: string;
+  ADDRESS?: string;
+  POSTAL?: string;
+  LATITUDE: string;
+  LONGITUDE: string;
 }
 
 interface NormalizedStep {
@@ -25,6 +25,10 @@ interface NormalizedRoute {
 
 export class OneMapClientError extends Error {}
 
+// Relative paths -- same origin in both dev (via the Vite proxy configured
+// in vite.config.ts, pointing at the local Express server) and production
+// (the Express server itself serves the built frontend on Cloud Run, so
+// there is no cross-origin call to make there either).
 async function apiGet(path: string, params: Record<string, string>) {
   const url = new URL(path, window.location.origin);
   for (const [key, value] of Object.entries(params)) url.searchParams.set(key, value);
@@ -37,27 +41,31 @@ async function apiGet(path: string, params: Record<string, string>) {
   return body;
 }
 
-export async function searchPlaces(query: string): Promise<OneMapSearchResult[]> {
+export async function searchLocations(query: string): Promise<OneMapSearchResult[]> {
   if (!query.trim()) return [];
-  const body = await apiGet('/api/onemap/search', { q: query });
+  const body = await apiGet('/api/onemap/search', { searchVal: query });
   return body.results ?? [];
 }
 
 export function searchResultToLocationPoint(result: OneMapSearchResult): LocationPoint {
+  const postal = result.POSTAL && result.POSTAL !== 'NIL' ? result.POSTAL : null;
   return {
-    id: `onemap-${result.postal ?? `${result.lat},${result.lng}`}`,
-    name: result.name,
+    id: `onemap-${postal ?? `${result.LATITUDE},${result.LONGITUDE}`}`,
+    name: result.SEARCHVAL,
     type: 'mall', // OneMap search doesn't classify venue type; closest neutral default in the existing union
-    coordinates: { lat: result.lat, lng: result.lng },
+    coordinates: { lat: Number(result.LATITUDE), lng: Number(result.LONGITUDE) },
   };
 }
 
 // ---- mode -> UI presentation mapping ----
 // covered/shelterType are heuristic placeholders (rail/bus assumed sheltered,
-// walk/cycle/drive unknown) until the disruption/sheltered-walkway overlay
-// described in ps2-dev-plan.md is layered on top of these routes.
+// walk/cycle/drive unknown) until a real disruption/sheltered-walkway data
+// layer is added -- OneMap itself doesn't report this.
 function stepFromNormalized(normalized: NormalizedStep, id: string): NavigationStep {
-  const byMode: Record<NormalizedStep['mode'], { iconType: NavigationStep['iconType']; covered: boolean; shelterType?: NavigationStep['shelterType'] }> = {
+  const byMode: Record<
+    NormalizedStep['mode'],
+    { iconType: NavigationStep['iconType']; covered: boolean; shelterType?: NavigationStep['shelterType'] }
+  > = {
     walk: { iconType: 'walk', covered: false },
     cycle: { iconType: 'walk', covered: false },
     drive: { iconType: 'straight', covered: true, shelterType: 'Air-conditioned Mall' },
@@ -79,9 +87,28 @@ function stepFromNormalized(normalized: NormalizedStep, id: string): NavigationS
   };
 }
 
+function placeholderStep(routeId: string): NavigationStep {
+  return {
+    id: `${routeId}-step-0`,
+    instruction: 'Proceed to destination',
+    detail: '',
+    covered: false,
+    distanceMeters: 0,
+    durationSeconds: 0,
+    iconType: 'destination',
+  };
+}
+
 function routeOptionFromNormalized(
   route: NormalizedRoute,
-  opts: { id: string; type: RouteOption['type']; title: string; subtitle: string; badge?: string; badgeType?: RouteOption['badgeType'] }
+  opts: {
+    id: string;
+    type: RouteOption['type'];
+    title: string;
+    subtitle: string;
+    badge?: string;
+    badgeType?: RouteOption['badgeType'];
+  }
 ): RouteOption {
   const steps = route.steps.map((s, i) => stepFromNormalized(s, `${opts.id}-step-${i}`));
   const coveredMeters = steps.filter((s) => s.covered).reduce((sum, s) => sum + s.distanceMeters, 0);
@@ -101,20 +128,6 @@ function routeOptionFromNormalized(
     openCrossingMeters: steps.filter((s) => !s.covered).reduce((sum, s) => sum + s.distanceMeters, 0),
     shelterDistanceMeters: coveredMeters,
     steps: steps.length > 0 ? steps : [placeholderStep(opts.id)],
-  };
-}
-
-function placeholderStep(routeId: string): NavigationStep {
-  // OneMap occasionally returns an empty instruction list for very short
-  // routes -- keep NavigationScreen from rendering against an empty array.
-  return {
-    id: `${routeId}-step-0`,
-    instruction: 'Proceed to destination',
-    detail: '',
-    covered: false,
-    distanceMeters: 0,
-    durationSeconds: 0,
-    iconType: 'destination',
   };
 }
 
@@ -154,6 +167,20 @@ export async function fetchSimpleRoute(
     title: labels[mode],
     subtitle: `${Math.round(route.totalDistanceMeters)}m via OneMap`,
   });
+}
+
+// Kept for compatibility with any existing call sites -- delegates to fetchSimpleRoute.
+export async function getWalkingRoute(
+  startLat: number,
+  startLng: number,
+  endLat: number,
+  endLng: number
+): Promise<RouteOption> {
+  return fetchSimpleRoute(
+    { id: 'origin', name: 'Origin', type: 'mall', coordinates: { lat: startLat, lng: startLng } },
+    { id: 'destination', name: 'Destination', type: 'mall', coordinates: { lat: endLat, lng: endLng } },
+    'walk'
+  );
 }
 
 export async function fetchTransitRoutes(

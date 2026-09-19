@@ -12,15 +12,12 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 COPY package*.json ./
-RUN npm ci --omit=dev && npm install tsx --no-save
-# tsx is a devDependency (used for local `npm run server`); installed
-# separately here since --omit=dev strips it, but the runtime still needs it
-# to execute the TypeScript server directly without a separate build step.
+RUN npm ci --omit=dev
 
 COPY server ./server
 COPY --from=build /app/dist ./dist
 
 # Cloud Run injects PORT and expects the container to listen on it --
-# server/index.ts already reads process.env.PORT first.
+# server/onemap.js already reads process.env.PORT first (falls back to 3001).
 EXPOSE 8080
-CMD ["npx", "tsx", "server/index.ts"]
+CMD ["node", "server/onemap.js"]

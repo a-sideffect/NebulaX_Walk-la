@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Search, MapPin, Check, Shield, Loader2 } from 'lucide-react';
 import { LocationPoint } from '../types';
 import { POPULAR_LOCATIONS } from '../data/mockData';
-import { searchPlaces, searchResultToLocationPoint, OneMapSearchResult } from '../services/onemap';
+import { searchLocations, searchResultToLocationPoint, OneMapSearchResult } from '../services/onemap';
 
 interface LocationPickerModalProps {
   isOpen: boolean;
@@ -41,7 +41,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
     setSearchError(null);
 
     const timer = setTimeout(() => {
-      searchPlaces(searchQuery)
+      searchLocations(searchQuery)
         .then((results) => {
           if (!cancelled) setLiveResults(results);
         })
@@ -121,6 +121,7 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
               {liveResults.map((result) => {
                 const loc = searchResultToLocationPoint(result);
                 const isSelected = loc.id === currentLocation.id;
+                const postal = result.POSTAL && result.POSTAL !== 'NIL' ? result.POSTAL : null;
                 return (
                   <button
                     key={loc.id}
@@ -142,17 +143,19 @@ export const LocationPickerModal: React.FC<LocationPickerModalProps> = ({
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-[14.5px] font-bold text-white truncate">
-                            {result.name}
+                            {result.SEARCHVAL}
                           </span>
-                          {result.postal && (
+                          {postal && (
                             <span className="bg-[#0b3832] text-[#00ffa3] text-[10px] font-bold px-1.5 py-0.5 rounded">
-                              {result.postal}
+                              {postal}
                             </span>
                           )}
                         </div>
-                        <div className="text-[11.5px] text-slate-400 mt-0.5 truncate">
-                          {result.address}
-                        </div>
+                        {result.ADDRESS && (
+                          <div className="text-[11.5px] text-slate-400 mt-0.5 truncate">
+                            {result.ADDRESS}
+                          </div>
+                        )}
                       </div>
                     </div>
                     {isSelected && <Check className="w-5 h-5 text-[#00ffa3] shrink-0 ml-2" />}

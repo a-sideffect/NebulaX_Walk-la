@@ -21,7 +21,7 @@ export default defineConfig(() => {
       // so the frontend can call same-origin /api/onemap/* with no CORS config needed.
       proxy: {
         '/api': {
-          target: `http://localhost:${process.env.SERVER_PORT || 8787}`,
+          target: `http://localhost:${process.env.PORT || 3001}`,
           changeOrigin: true,
         },
       },
