@@ -1,8 +1,41 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Bus, Train, ShieldCheck, Umbrella, Users, ArrowRight } from 'lucide-react';
-import { MOCK_BUS_ARRIVALS } from '../data/mockData';
+import { getBusArrivals } from '../services/lta';
+
+const getMinutesUntilArrival = (arrivalTime: string) => {
+  if (!arrivalTime) return null;
+
+  const arrival = new Date(arrivalTime).getTime();
+  const now = Date.now();
+
+  const minutes = Math.ceil((arrival - now) / 60000);
+
+  return Math.max(0, minutes);
+};
 
 export const TransitScreen: React.FC = () => {
+  const [busArrivals, setBusArrivals] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+  const fetchBusArrivals = async () => {
+    try {
+      setIsLoading(true);
+
+      const data = await getBusArrivals("75009");
+
+      setBusArrivals(data.Services || []);
+    } catch (error) {
+      console.error("Failed to fetch bus arrivals:", error);
+      setBusArrivals([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  fetchBusArrivals();
+}, []);
+
   return (
     <div className="space-y-4 select-none pb-24" id="transit-screen">
       {/* Header Info Banner */}
@@ -91,14 +124,14 @@ export const TransitScreen: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          {MOCK_BUS_ARRIVALS.map((bus) => (
+          {busArrivals.map((bus) => (
             <div
-              key={bus.serviceNo}
+              key={bus.ServiceNo}
               className="bg-[#121c27] rounded-2xl border border-slate-800/80 p-3.5 flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-xl bg-[#113830] text-[#00ffa3] flex items-center justify-center font-black text-[18px]">
-                  {bus.serviceNo}
+                  {bus.ServiceNo}
                 </div>
                 <div>
                   <div className="flex items-center gap-2">
@@ -118,7 +151,7 @@ export const TransitScreen: React.FC = () => {
 
               <div className="text-right">
                 <div className="text-[18px] font-extrabold text-[#00ffa3] leading-tight">
-                  {bus.nextArrivalMins} min
+                  {getMinutesUntilArrival(bus.NextBus?.EstimatedArrival)} min
                 </div>
                 <div className="text-[11px] text-slate-400 mt-0.5">
                   Next: {bus.subsequentArrivalMins}m
