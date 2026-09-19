@@ -33,6 +33,9 @@ export interface NavigationStep {
   durationSeconds: number;
   iconType: 'subway' | 'bus' | 'walk' | 'turn-left' | 'turn-right' | 'straight' | 'shelter' | 'destination';
   shelterType?: 'Underground' | 'Covered Linkway' | 'Air-conditioned Mall' | 'Void Deck' | 'Open Crossing';
+  /** Live-guidance target for this step. Populated from OneMap route legs when
+   *  a real route is fetched; optional so mock/fallback steps still type-check. */
+  coordinates?: { lat: number; lng: number };
 }
 
 export interface WeatherStatus {

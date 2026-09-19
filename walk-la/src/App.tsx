@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { TabType, LocationPoint, RouteOption, WeatherStatus, AdvisoryInfo } from './types';
 import { 
   DEFAULT_ORIGIN, 
@@ -6,6 +6,7 @@ import {
   DEFAULT_ADVISORY, 
   DEFAULT_ROUTES 
 } from './data/mockData';
+import { fetchRouteOptionsForTrip, OneMapClientError } from './services/onemap';
 import { TopHeader } from './components/TopHeader';
 import { RouteSearchCard } from './components/RouteSearchCard';
 import { LiveAdvisoryCard } from './components/LiveAdvisoryCard';
@@ -39,6 +40,41 @@ export default function App() {
 
   const [advisory, setAdvisory] = useState<AdvisoryInfo>(DEFAULT_ADVISORY);
   const [routes, setRoutes] = useState<RouteOption[]>(DEFAULT_ROUTES);
+  const [routesLoading, setRoutesLoading] = useState(false);
+  const [routesError, setRoutesError] = useState<string | null>(null);
+
+  // Fetch real routes from OneMap whenever origin/destination changes.
+  // Falls back to the bundled mock routes if the backend/OneMap call fails,
+  // so the demo never shows a dead end even if the proxy server isn't running.
+  useEffect(() => {
+    let cancelled = false;
+    setRoutesLoading(true);
+    setRoutesError(null);
+
+    fetchRouteOptionsForTrip(origin, destination)
+      .then((fetched) => {
+        if (cancelled) return;
+        setRoutes(fetched);
+        setSelectedRouteId(fetched[0].id);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        const message =
+          err instanceof OneMapClientError
+            ? err.message
+            : 'Could not reach the route server -- showing sample routes instead.';
+        setRoutesError(message);
+        setRoutes(DEFAULT_ROUTES);
+        setSelectedRouteId(DEFAULT_ROUTES[0].id);
+      })
+      .finally(() => {
+        if (!cancelled) setRoutesLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [origin, destination]);
 
   // Modals state
   const [isLocationModalOpen, setIsLocationModalOpen] = useState(false);
@@ -67,25 +103,30 @@ export default function App() {
     setWeather(newWeather);
     
     // Adapt advisory according to weather
+    // Select by route type rather than a fixed mock ID -- IDs change once
+    // real OneMap routes replace the bundled mock set.
+    const transitRoute = routes.find((r) => r.type === 'transit');
+    const walkRoute = routes.find((r) => r.type === 'walk');
+
     if (newWeather.condition === 'heavy_rain') {
       setAdvisory({
-        recommendationTitle: 'Feeder Bus 291 strictly advised',
-        description: 'Heavy thunderstorm active. Open 30m crossing at Tampines Ave 4 has water pooling.',
-        transitSummary: { totalMins: 5, busNotice: 'Bus 291 in 2 mins', is100Dry: true },
+        recommendationTitle: 'Transit strictly advised',
+        description: 'Heavy thunderstorm active. Open crossings on the walking route may have water pooling.',
+        transitSummary: { totalMins: 5, busNotice: 'Check live arrivals', is100Dry: true },
         walkSummary: { totalMins: 14, openCrossingMeters: 30, coveredPercent: 90 },
       });
-      setSelectedRouteId('route-feeder-291');
+      setSelectedRouteId((transitRoute ?? routes[0])?.id);
     } else if (newWeather.condition === 'clear') {
       setAdvisory({
-        recommendationTitle: 'Canopy Walkway recommended',
-        description: 'Weather is clear and shaded. Enjoy a comfortable 820m sheltered stroll under high canopy.',
-        transitSummary: { totalMins: 5, busNotice: 'Bus 291 in 5 mins', is100Dry: true },
+        recommendationTitle: 'Walking route recommended',
+        description: 'Weather is clear. Enjoy a comfortable walk to your destination.',
+        transitSummary: { totalMins: 5, busNotice: 'Check live arrivals', is100Dry: true },
         walkSummary: { totalMins: 12, openCrossingMeters: 30, coveredPercent: 95 },
       });
-      setSelectedRouteId('route-canopy-walk');
+      setSelectedRouteId((walkRoute ?? routes[0])?.id);
     } else {
       setAdvisory(DEFAULT_ADVISORY);
-      setSelectedRouteId('route-feeder-291');
+      setSelectedRouteId((transitRoute ?? routes[0])?.id);
     }
   };
 
@@ -130,6 +171,15 @@ export default function App() {
                 selectedRouteId={selectedRouteId}
                 onSelectRoute={(id) => setSelectedRouteId(id)}
               />
+
+              {routesLoading && (
+                <div className="text-[12px] text-slate-400 px-1">Fetching live routes from OneMap…</div>
+              )}
+              {routesError && !routesLoading && (
+                <div className="text-[12px] text-[#fba268] bg-[#241a13] border border-[#50311c] rounded-xl px-3 py-2">
+                  {routesError}
+                </div>
+              )}
 
               {/* Route Options List */}
               <RouteOptionsList
